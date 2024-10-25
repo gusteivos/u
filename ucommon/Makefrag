@@ -1,0 +1,8 @@
+
+UCOMMONFOLDER:=$(dir $(lastword $(MAKEFILE_LIST)))
+
+SOURCES:=$(wildcard $(UCOMMONFOLDER)*.c)
+
+include ./../MakefragExtensions
+
+OBJECTS:=$(SOURCES:.c=$(OBJ))

@@ -1,0 +1,6 @@
+
+ifeq ($(OS),Windows_NT)
+	RM=cmd /C .\..\rm.bat -f -v
+else
+	RM=rm -f -v
+endif

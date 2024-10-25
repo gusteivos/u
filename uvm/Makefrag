@@ -1,0 +1,14 @@
+
+UVMFOLDER:=$(dir $(lastword $(MAKEFILE_LIST)))
+
+UVMSOURCES=$(wildcard $(UVMFOLDER)*.c)
+UVMTARGETFOLDER:=$(if $(UVMTARGET),$(UVMFOLDER)$(UVMTARGET),$(UVMFOLDER))
+
+SOURCES:=$(foreach file, $(UVMSOURCES),						\
+	$(if $(wildcard $(UVMTARGETFOLDER)$(notdir $(file))),	\
+	$(UVMTARGETFOLDER)$(notdir $(file)),					\
+	$(file)))
+
+include ./../MakefragExtensions
+
+OBJECTS=$(SOURCES:.c=$(OBJ))

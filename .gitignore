@@ -9,18 +9,26 @@ a/
 # Object files
 *.o
 *.obj
+*/*.o
+*/*.obj
 
 # Libraries
-*.lib
 *.a
+*.lib
+*/*.a
+*/*.lib
 
 #
-*.dll
 *.so
+*.dll
+*/*.so
+*/*.dll
 
 # Executables
-*.exe
 *.out
+*.exe
+*/*.exe
+*/*.out
 
 # Assembly files
 *.s

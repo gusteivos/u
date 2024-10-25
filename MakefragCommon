@@ -1,0 +1,16 @@
+
+.PHONY: clean
+
+include ./../MakefragCC
+include ./../MakefragRM
+
+FLAGS?=
+DEFINES?=
+INCLUDES?=
+LIBS?=
+
+%.o: %.c
+	$(CCALL) $(FLAGS) $(DEFINES) $(INCLUDES) $(LIBS) -c $< -o $@
+
+clean: outherclean
+	$(RM) $(OBJECTS)

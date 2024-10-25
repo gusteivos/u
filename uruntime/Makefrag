@@ -1,0 +1,8 @@
+
+URUNTIMEFOLDER:=$(dir $(lastword $(MAKEFILE_LIST)))
+
+SOURCES:=$(wildcard $(URUNTIMEFOLDER)*.c)
+
+include ./../MakefragExtensions
+
+OBJECTS:=$(SOURCES:.c=$(OBJ))

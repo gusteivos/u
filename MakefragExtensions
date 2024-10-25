@@ -1,0 +1,12 @@
+
+ifeq ($(OS),Windows_NT)
+	OBJ=.obj
+	EXEC=.exe
+	LIB=.lib
+	SO=.dll
+else
+	OBJ=.o
+	EXEC=.out
+	LIB=.a
+	SO=.so
+endif

@@ -1,0 +1,8 @@
+
+MFCC?=gcc -std=c99 -pedantic -pedantic-errors
+MFCCFLAGS?=-Wall -Wextra
+MFCCDEFINES?=
+MFCCINCLUDES?=
+MFCCLIBS?=-lm
+
+CCALL=$(MFCC) $(MFCCFLAGS) $(MFCCDEFINES) $(MFCCINCLUDES) $(MFCCLIBS)
