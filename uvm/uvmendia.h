@@ -5,8 +5,8 @@
 #include <stdint.h>
 #include "uvmcompi.h"
 
-#define UVM_ENDIAN_BIG UINT32_C(1234)
-#define UVM_ENDIAN_LIL UINT32_C(4321)
+#define UVM_ENDIAN_BIG 1234
+#define UVM_ENDIAN_LIL 4321
 
 #ifndef UVMPLA_ENDIAN
     #define UVMPLA_ENDIAN UVM_ENDIAN_BIG
