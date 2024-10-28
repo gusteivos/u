@@ -2,6 +2,7 @@
 .PHONY: clean
 
 include ./../MakefragCC
+include ./../MakefragExtensions
 include ./../MakefragRM
 
 FLAGS?=
@@ -9,7 +10,7 @@ DEFINES?=
 INCLUDES?=
 LIBS?=
 
-%.o: %.c
+%$(OBJ): %.c
 	$(CCALL) $(FLAGS) $(DEFINES) $(INCLUDES) $(LIBS) -c $< -o $@
 
 clean: outherclean
