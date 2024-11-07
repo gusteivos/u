@@ -51,14 +51,14 @@ UVM_LINKAG UVM_END2ENDNUM_DEFI(UVM_ENDIAN_LIL, UVM_ENDIAN_BIG, 8, value);
 /*---------------------------------------------------------------------------*/
 /* . */
 
-#define UVM_SWAP_FROM2TONUM(from, to, size)                                    \
+#define UVM_SWAP_FROM2TONUM(from, to, size)                                   \
 swap_##from##2##to##size
 
-#define UVM_SWAP_FROM2TONUM_DEFI(from, to, size, value)                        \
-void UVM_SWAP_FROM2TONUM(from, to, size)(void *value)                          \
+#define UVM_SWAP_FROM2TONUM_DEFI(from, to, size, value)                       \
+void UVM_SWAP_FROM2TONUM(from, to, size)(void *value)                         \
 
-#define UVM_SWAP_FROM2TONUM_CALL(from, to, size, value)                        \
-UVM_SWAP_FROM2TONUM(from, to, size)(value)                                     \
+#define UVM_SWAP_FROM2TONUM_CALL(from, to, size, value)                       \
+UVM_SWAP_FROM2TONUM(from, to, size)(value)                                    \
 
 UVM_LINKAG UVM_SWAP_FROM2TONUM_DEFI(pla, uvm, 2, value); /*swap_pla2uvm2*/
 
