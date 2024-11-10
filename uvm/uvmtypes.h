@@ -91,9 +91,9 @@ typedef UVM_SIZE uvm_size;
 #define UVM_SIZE_MAX UINT64_MAX
 #endif
 
-UVM_LINKAG uvm_size pla2uvmsz(uvm_size);
+UVM_LINKAG uvm_size pla2uvmsize(uvm_size);
 
-UVM_LINKAG uvm_size uvm2plasz(uvm_size);
+UVM_LINKAG uvm_size uvm2plasize(uvm_size);
 
 UVM_LINKAG uvm_size plasz2uvmsz(size_t);
 
@@ -107,9 +107,9 @@ typedef UVM_SSIZE uvm_ssize;
 #define UVM_SSIZE_MAX INT64_MAX
 #endif
 
-UVM_LINKAG uvm_ssize pla2uvmssz(uvm_ssize);
+UVM_LINKAG uvm_ssize pla2uvmssize(uvm_ssize);
 
-UVM_LINKAG uvm_ssize uvm2plassz(uvm_ssize);
+UVM_LINKAG uvm_ssize uvm2plassize(uvm_ssize);
 
 #ifdef __cplusplus
 }

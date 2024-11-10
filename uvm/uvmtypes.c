@@ -102,7 +102,7 @@ uvm_uint uvm2plauint(uvm_uint u)
 }
 
 
-uvm_size pla2uvmsz(uvm_size sz)
+uvm_size pla2uvmsize(uvm_size sz)
 {
 #if UVM_SIZE_SZ > 1
     UVM_SWAP_FROM2TONUM_CALL(pla, uvm, UVM_SIZE_SZ, &sz);
@@ -110,7 +110,7 @@ uvm_size pla2uvmsz(uvm_size sz)
     return sz;
 }
 
-uvm_size uvm2plasz(uvm_size sz)
+uvm_size uvm2plasize(uvm_size sz)
 {
 #if UVM_SIZE_SZ > 1
     UVM_SWAP_FROM2TONUM_CALL(uvm, pla, UVM_SIZE_SZ, &sz);
@@ -122,25 +122,25 @@ uvm_size uvm2plasz(uvm_size sz)
 
     uvm_size plasz2uvmsz(size_t sz)
     {
-        return pla2uvmsz((uvm_size)sz);
+        return pla2uvmsize((uvm_size)sz);
     }
 
     size_t uvmsz2plasz(uvm_size sz)
     {
-        return (size_t)uvm2plasz(sz);
+        return (size_t)uvm2plasize(sz);
     }
 
 /* TEMP. */
 
 
-uvm_ssize pla2uvmssz(uvm_ssize ss) {
+uvm_ssize pla2uvmssize(uvm_ssize ss) {
 #if UVM_SSIZE_SZ > 1
     UVM_SWAP_FROM2TONUM_CALL(pla, uvm, UVM_SSIZE_SZ, &ss);
 #endif
     return ss;
 }
 
-uvm_ssize uvm2plassz(uvm_ssize ss) {
+uvm_ssize uvm2plassize(uvm_ssize ss) {
 #if UVM_SSIZE_SZ > 1
     UVM_SWAP_FROM2TONUM_CALL(uvm, pla, UVM_SSIZE_SZ, &ss);
 #endif

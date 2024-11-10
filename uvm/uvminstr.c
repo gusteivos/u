@@ -15,18 +15,21 @@ const char *uvm_instruction2str[] =
     [UVM_INSTRUCTION_CTXID ] = "ctxid" ,
     [UVM_INSTRUCTION_CTXSTS] = "ctxsts",
 
+    [UVM_INSTRUCTION_GESTKS] = "gestks",
     [UVM_INSTRUCTION_GESTKB] = "gestkb",
     [UVM_INSTRUCTION_GESTKP] = "gestkp",
+    [UVM_INSTRUCTION_SESTKS] = "sestks",
     [UVM_INSTRUCTION_SESTKB] = "sestkb",
     [UVM_INSTRUCTION_SESTKP] = "sestkp",
 
-    [UVM_INSTRUCTION_GEIMA] = "geima",
-    [UVM_INSTRUCTION_SEIMA] = "seima",
-    [UVM_INSTRUCTION_CLIMA] = "clima",
+    [UVM_INSTRUCTION_GEIM] = "geim",
+    [UVM_INSTRUCTION_SEIM] = "seim",
+    [UVM_INSTRUCTION_CLIM] = "clim",
 
-    [UVM_INSTRUCTION_MEM] = "mem",
-    [UVM_INSTRUCTION_GRO] = "gro",
-    [UVM_INSTRUCTION_SWP] = "swp",
+    [UVM_INSTRUCTION_MEMORY] = "memory",
+    [UVM_INSTRUCTION_BLOCK ] = "block" ,
+    [UVM_INSTRUCTION_GROW  ] = "grow"  ,
+    [UVM_INSTRUCTION_SWAP  ] = "swap"  ,
 
     [UVM_INSTRUCTION_BYPUSH] = "bypush",
     [UVM_INSTRUCTION_BYDROP] = "bydrop",
