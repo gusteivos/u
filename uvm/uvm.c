@@ -672,7 +672,6 @@ if (                                                                    \
 uvm_context_stack_push_##type(vm, status, ctx, value);                  \
 } while (0)                                                             \
 
-
 #define UVM_DROP(vm, status, ctx, type)                                 \
 do                                                                      \
 {                                                                       \
@@ -682,13 +681,6 @@ uvm_context_stack_pop_##type(vm, status, ctx, NULL, true);              \
 #define UVM_REV(vm, status, ctx, type)                                  \
 do                                                                      \
 {                                                                       \
-uvm_##type value0;                                                      \
-if (                                                                    \
-    uvm_context_stack_pop_##type(vm, status, ctx, &value0, true)        \
-    )                                                                   \
-{                                                                       \
-    break;                                                              \
-}                                                                       \
 uvm_##type value1;                                                      \
 if (                                                                    \
     uvm_context_stack_pop_##type(vm, status, ctx, &value1, true)        \
@@ -696,8 +688,15 @@ if (                                                                    \
 {                                                                       \
     break;                                                              \
 }                                                                       \
-uvm_context_stack_push_##type(vm, status, ctx, value0);                 \
+uvm_##type value0;                                                      \
+if (                                                                    \
+    uvm_context_stack_pop_##type(vm, status, ctx, &value0, true)        \
+    )                                                                   \
+{                                                                       \
+    break;                                                              \
+}                                                                       \
 uvm_context_stack_push_##type(vm, status, ctx, value1);                 \
+uvm_context_stack_push_##type(vm, status, ctx, value0);                 \
 } while (0)                                                             \
 
 #define UVM_DUP(vm, status, ctx, type)                                  \
@@ -716,13 +715,6 @@ uvm_context_stack_push_##type(vm, status, ctx, value);                  \
 #define UVM_BINARY_OP(vm, status, ctx, type, op)                        \
 do                                                                      \
 {                                                                       \
-uvm_##type value0;                                                      \
-if (                                                                    \
-    uvm_context_stack_pop_##type(vm, status, ctx, &value0, true)        \
-    )                                                                   \
-{                                                                       \
-    break;                                                              \
-}                                                                       \
 uvm_##type value1;                                                      \
 if (                                                                    \
     uvm_context_stack_pop_##type(vm, status, ctx, &value1, true)        \
@@ -730,8 +722,15 @@ if (                                                                    \
 {                                                                       \
     break;                                                              \
 }                                                                       \
-value0=uvm2pla##type(value0);                                           \
+uvm_##type value0;                                                      \
+if (                                                                    \
+    uvm_context_stack_pop_##type(vm, status, ctx, &value0, true)        \
+    )                                                                   \
+{                                                                       \
+    break;                                                              \
+}                                                                       \
 value1=uvm2pla##type(value1);                                           \
+value0=uvm2pla##type(value0);                                           \
 uvm_##type value2=value0 op value1;                                     \
 value2=pla2uvm##type(value2);                                           \
 uvm_context_stack_push_##type(vm, status, ctx, value2);                 \
@@ -823,6 +822,8 @@ int uvm_execute(
         return fetch_instruction_buffer_return;
 
     }
+
+    instruction_buffer = uvm2plabyte(instruction_buffer);
 
     uvm_instruction_t instruction = (uvm_instruction_t)instruction_buffer;
 

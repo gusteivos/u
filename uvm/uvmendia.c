@@ -54,7 +54,8 @@ uint32_t get_pla_uvm_endian()
 
 static uint16_t invert_uint16(uint16_t u)
 {
-    return (u >> 8) | (u << 8);
+    return ((u >> 8) & 0x00FF) |
+           ((u << 8) & 0xFF00);
 }
 
 static uint32_t invert_uint32(uint32_t u)
