@@ -543,8 +543,7 @@ int uvm_context_stack_push(
     if (
         vm == NULL ||
         vm == NULL||
-        buffer_size == 0 ||
-        buffer == NULL
+        buffer_size == 0
         )
     {
 
@@ -605,8 +604,7 @@ int uvm_context_stack_pop (
     if (
         vm == NULL ||
         vm == NULL||
-        buffer_size == 0 ||
-        buffer == NULL
+        buffer_size == 0
         )
     {
 
