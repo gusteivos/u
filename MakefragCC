@@ -1,5 +1,5 @@
 
-MFCC?=gcc -std=c99 -pedantic -pedantic-errors
+MFCC?=gcc -std=c99 -pedantic -pedantic-errors -g
 MFCCFLAGS?=-Wall -Wextra
 MFCCDEFINES?=
 MFCCINCLUDES?=
