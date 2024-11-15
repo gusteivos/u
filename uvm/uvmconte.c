@@ -4,14 +4,15 @@ const uvm_context_status_t first_uvm_context_status =
 UVM_CONTEXT_STATUS_OK;
 
 const uvm_context_status_t last_uvm_context_status =
-UVM_CONTEXT_STATUS_STACK_UNDERFLOW;
+UVM_CONTEXT_STATUS_BY_ZERO;
 
 const char *uvm_context_status2str[] =
 {
     [UVM_CONTEXT_STATUS_OK] = "OK",
     [UVM_CONTEXT_STATUS_ILLEGAL_INSTRUCTION] = "ILLEGAL INSTRUCTION",
     [UVM_CONTEXT_STATUS_STACK_OVERFLOW ] = "STACK OVERFLOW" ,
-    [UVM_CONTEXT_STATUS_STACK_UNDERFLOW] = "STACK UNDERFLOW"
+    [UVM_CONTEXT_STATUS_STACK_UNDERFLOW] = "STACK UNDERFLOW",
+    [UVM_CONTEXT_STATUS_BY_ZERO] = "BY ZERO"
 };
 
 const char *uvm_context_status2string(uvm_context_status_t status)

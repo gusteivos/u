@@ -12,6 +12,7 @@
 #include "uvmtypes.h"
 #include "uvmconte.h"
 #include "uvminstr.h"
+#include "uvmversi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -19,7 +20,7 @@ extern "C" {
 
 typedef enum uvm_status_e
 {
- 
+
     UVM_STATUS_OK = 0,
     UVM_STATUS_OUT_OF_MEMORY,
     UVM_STATUS_NON_SEQUENTIAL_MEMORY
@@ -112,10 +113,21 @@ UVM_LINKAG int uvm_context_stack_pop (
     bool decrement
     );
 
+typedef void (* uvm_inout_handler_t)(
+    uvm_t *,
+    uvm_status_t *,
+    uvm_context_t *,
+    bool,
+    size_t,
+    size_t,
+    unsigned char *
+    );
+
 UVM_LINKAG int uvm_execute(
     uvm_t *vm,
     uvm_status_t *status,
-    uvm_context_t *ctx
+    uvm_context_t *ctx,
+    uvm_inout_handler_t io_handler
     );
 
 UVM_LINKAG void  free_uvm(uvm_t *vm);

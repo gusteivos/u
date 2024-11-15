@@ -710,7 +710,7 @@ if (                                                                    \
 uvm_context_stack_push_##type(vm, status, ctx, value);                  \
 } while (0)                                                             \
 
-#define UVM_BINARY_OP(vm, status, ctx, type, op)                        \
+#define UVM_BINARY_OP(vm, status, ctx, type, op, by_zero)               \
 do                                                                      \
 {                                                                       \
 uvm_##type value1;                                                      \
@@ -729,15 +729,96 @@ if (                                                                    \
 }                                                                       \
 value1=uvm2pla##type(value1);                                           \
 value0=uvm2pla##type(value0);                                           \
+if (                                                                    \
+    by_zero == false &&                                                 \
+    (value1 == 0 || value0 == 0)                                        \
+    )                                                                   \
+{                                                                       \
+    ctx->status = UVM_CONTEXT_STATUS_BY_ZERO;                           \
+    break;                                                              \
+}                                                                       \
 uvm_##type value2=value0 op value1;                                     \
 value2=pla2uvm##type(value2);                                           \
 uvm_context_stack_push_##type(vm, status, ctx, value2);                 \
 } while (0)                                                             \
 
+#define UVM_UNARY_OP(vm, status, ctx, type, op)                         \
+do                                                                      \
+{                                                                       \
+uvm_##type value;                                                       \
+if (                                                                    \
+    uvm_context_stack_pop_##type(vm, status, ctx, &value, true)         \
+    )                                                                   \
+{                                                                       \
+    break;                                                              \
+}                                                                       \
+value=uvm2pla##type(value);                                             \
+value=op value;                                                         \
+value=pla2uvm##type(value);                                             \
+uvm_context_stack_push_##type(vm, status, ctx, value);                  \
+} while (0)                                                             \
+
+#define UVM_SHIFT_OP(vm, status, ctx, type, op, times)                  \
+do                                                                      \
+{                                                                       \
+uvm_##type value;                                                       \
+if (                                                                    \
+    uvm_context_stack_pop_##type(vm, status, ctx, &value, true)         \
+    )                                                                   \
+{                                                                       \
+    break;                                                              \
+}                                                                       \
+value=uvm2pla##type(value);                                             \
+value=value op times;                                                   \
+value=pla2uvm##type(value);                                             \
+uvm_context_stack_push_##type(vm, status, ctx, value);                  \
+} while (0)                                                             \
+
+#define UVM_ROTATE_OP(vm, status, ctx, type, type_size, op0, op1, times)\
+do                                                                      \
+{                                                                       \
+uvm_##type value;                                                       \
+if (                                                                    \
+    uvm_context_stack_pop_##type(vm, status, ctx, &value, true)         \
+    )                                                                   \
+{                                                                       \
+    break;                                                              \
+}                                                                       \
+value=uvm2pla##type(value);                                             \
+value=(value op0 times) | (value op1 ((type_size << 3) - times));       \
+value=pla2uvm##type(value);                                             \
+uvm_context_stack_push_##type(vm, status, ctx, value);                  \
+} while (0)                                                             \
+
+#define UVM_LOGIC_OP(vm, status, ctx, type, op)                         \
+do                                                                      \
+{                                                                       \
+uvm_##type value1;                                                      \
+if (                                                                    \
+    uvm_context_stack_pop_##type(vm, status, ctx, &value1, true)        \
+    )                                                                   \
+{                                                                       \
+    break;                                                              \
+}                                                                       \
+uvm_##type value0;                                                      \
+if (                                                                    \
+    uvm_context_stack_pop_##type(vm, status, ctx, &value0, true)        \
+    )                                                                   \
+{                                                                       \
+    break;                                                              \
+}                                                                       \
+value1=uvm2pla##type(value1);                                           \
+value0=uvm2pla##type(value0);                                           \
+uvm_byte value2=value0 op value1 ? 1 : 0;                               \
+value2=pla2uvmbyte(value2);                                             \
+uvm_context_stack_push_byte(vm, status, ctx, value2);                   \
+} while (0)                                                             \
+
 int uvm_execute(
     uvm_t *vm,
     uvm_status_t *status,
-    uvm_context_t *ctx
+    uvm_context_t *ctx,
+    uvm_inout_handler_t io_handler
     )
 {
 
@@ -825,15 +906,128 @@ int uvm_execute(
 
     uvm_instruction_t instruction = (uvm_instruction_t)instruction_buffer;
 
+    uvm_context_status_t old_ctx_status = ctx->status;
+
+    ctx->status = UVM_CONTEXT_STATUS_OK;
+
     switch (instruction)
     {
 
     case UVM_INSTRUCTION_NOOP:
         /* 0o000240 */; /* <- maybe a nop ? */
         break;
-
     case UVM_INSTRUCTION_HALT:
         ctx->halted = true;
+        break;
+
+    case UVM_INSTRUCTION_GEIM:
+        {
+
+            uvm_byte value = ctx->individual_mode ? 1 : 0;
+
+            value = pla2uvmbyte(value);
+
+            uvm_context_stack_push_byte(vm, status, ctx, value);
+
+        }
+        break;
+    case UVM_INSTRUCTION_SEIM:
+        ctx->individual_mode = true;
+        break;
+    case UVM_INSTRUCTION_CLIM:
+        ctx->individual_mode = false;
+        break;
+
+    case UVM_INSTRUCTION_UVMID:
+        {
+
+            unsigned char major;
+            unsigned char minor;
+            unsigned char patch;
+            unsigned char other;
+
+            uvm_get_version(
+                &major,
+                &minor,
+                &patch,
+                &other
+                );
+
+            uvm_byte byte0 = (uvm_byte)major;
+            uvm_byte byte1 = (uvm_byte)minor;
+            uvm_byte byte2 = (uvm_byte)patch;
+            uvm_byte byte3 = (uvm_byte)other;
+
+            byte0 = pla2uvmbyte(byte0);
+            byte1 = pla2uvmbyte(byte1);
+            byte2 = pla2uvmbyte(byte2);
+            byte3 = pla2uvmbyte(byte3);
+
+            if (uvm_context_stack_push_byte(vm, status, ctx, byte0))
+            {
+                break;
+            }
+
+            if (uvm_context_stack_push_byte(vm, status, ctx, byte1))
+            {
+                break;
+            }
+
+            if (uvm_context_stack_push_byte(vm, status, ctx, byte2))
+            {
+                break;
+            }
+
+            if (uvm_context_stack_push_byte(vm, status, ctx, byte3))
+            {
+                break;
+            }
+
+        }
+        break;
+    case UVM_INSTRUCTION_UVMSTS:
+        {
+
+            uvm_uint value = (uvm_uint)old_vm_status;
+
+            value=pla2uvmuint(value);
+
+            if (uvm_context_stack_push_uint(vm, status, ctx, value))
+            {
+                break;
+            }
+
+        }
+        break;
+    case UVM_INSTRUCTION_CTXID:
+        {
+
+            size_t valuep = (size_t)ctx;
+
+            uvm_size valueu = plasz2uvmsz(valuep);
+
+            valueu=pla2uvmsize(valueu);
+
+            if (uvm_context_stack_push_size(vm, status, ctx, valueu))
+            {
+                break;
+            }
+
+        }
+        break;
+    case UVM_INSTRUCTION_CTXSTS:
+        {
+
+            uvm_uint value = (uvm_uint)old_ctx_status;
+
+            value=pla2uvmuint(value);
+
+            if (uvm_context_stack_push_uint(vm, status, ctx, value))
+            {
+                break;
+            }
+
+        }
         break;
 
     /* BY: */
@@ -843,20 +1037,31 @@ int uvm_execute(
     case UVM_INSTRUCTION_BYREV : UVM_REV (vm, status, ctx, byte); break;
     case UVM_INSTRUCTION_BYDUP : UVM_DUP (vm, status, ctx, byte); break;
 
-    case UVM_INSTRUCTION_BYADD : UVM_BINARY_OP(vm, status, ctx, byte , +); break;
-    case UVM_INSTRUCTION_BYSUB : UVM_BINARY_OP(vm, status, ctx, byte , -); break;
-    case UVM_INSTRUCTION_BYMUL : UVM_BINARY_OP(vm, status, ctx, byte , *); break;
-    case UVM_INSTRUCTION_BYDIV : UVM_BINARY_OP(vm, status, ctx, byte , /); break;
-    case UVM_INSTRUCTION_BYMOD : UVM_BINARY_OP(vm, status, ctx, byte , %); break;
-    case UVM_INSTRUCTION_BYADDS: UVM_BINARY_OP(vm, status, ctx, sbyte, +); break;
-    case UVM_INSTRUCTION_BYSUBS: UVM_BINARY_OP(vm, status, ctx, sbyte, -); break;
-    case UVM_INSTRUCTION_BYMULS: UVM_BINARY_OP(vm, status, ctx, sbyte, *); break;
-    case UVM_INSTRUCTION_BYDIVS: UVM_BINARY_OP(vm, status, ctx, sbyte, /); break;
-    case UVM_INSTRUCTION_BYMODS: UVM_BINARY_OP(vm, status, ctx, sbyte, %); break;
-
-    case UVM_INSTRUCTION_BYAND : UVM_BINARY_OP(vm, status, ctx, byte , &); break;
-    case UVM_INSTRUCTION_BYOR  : UVM_BINARY_OP(vm, status, ctx, byte , |); break;
-    case UVM_INSTRUCTION_BYXOR : UVM_BINARY_OP(vm, status, ctx, byte , ^); break;
+    case UVM_INSTRUCTION_BYADD : UVM_BINARY_OP(vm, status, ctx, byte , +, true); break;
+    case UVM_INSTRUCTION_BYSUB : UVM_BINARY_OP(vm, status, ctx, byte , -, true); break;
+    case UVM_INSTRUCTION_BYMUL : UVM_BINARY_OP(vm, status, ctx, byte , *, true); break;
+    case UVM_INSTRUCTION_BYDIV : UVM_BINARY_OP(vm, status, ctx, byte , /, false); break;
+    case UVM_INSTRUCTION_BYMOD : UVM_BINARY_OP(vm, status, ctx, byte , %, false); break;
+    case UVM_INSTRUCTION_BYADDS: UVM_BINARY_OP(vm, status, ctx, sbyte, +, true); break;
+    case UVM_INSTRUCTION_BYSUBS: UVM_BINARY_OP(vm, status, ctx, sbyte, -, true); break;
+    case UVM_INSTRUCTION_BYMULS: UVM_BINARY_OP(vm, status, ctx, sbyte, *, true); break;
+    case UVM_INSTRUCTION_BYDIVS: UVM_BINARY_OP(vm, status, ctx, sbyte, /, false); break;
+    case UVM_INSTRUCTION_BYMODS: UVM_BINARY_OP(vm, status, ctx, sbyte, %, false); break;
+    case UVM_INSTRUCTION_BYASL : UVM_SHIFT_OP(vm, status, ctx, sbyte, <<, 1); break;
+    case UVM_INSTRUCTION_BYASR : UVM_SHIFT_OP(vm, status, ctx, sbyte, >>, 1); break;
+    case UVM_INSTRUCTION_BYAND : UVM_BINARY_OP(vm, status, ctx, byte , &, true); break;
+    case UVM_INSTRUCTION_BYOR  : UVM_BINARY_OP(vm, status, ctx, byte , |, true); break;
+    case UVM_INSTRUCTION_BYXOR : UVM_BINARY_OP(vm, status, ctx, byte , ^, true); break;
+    case UVM_INSTRUCTION_BYNOT : UVM_UNARY_OP(vm, status, ctx, byte, ~);   break;
+    case UVM_INSTRUCTION_BYLSL : UVM_SHIFT_OP(vm, status, ctx, byte, <<, 1); break;
+    case UVM_INSTRUCTION_BYLSR : UVM_SHIFT_OP(vm, status, ctx, byte, >>, 1); break;
+    case UVM_INSTRUCTION_BYRL  : UVM_ROTATE_OP(vm, status, ctx, byte, UVM_BYTE_SZ, <<, >>, 1); break;
+    case UVM_INSTRUCTION_BYRR  : UVM_ROTATE_OP(vm, status, ctx, byte, UVM_BYTE_SZ, >>, <<, 1); break;
+    case UVM_INSTRUCTION_BYEQ  : UVM_LOGIC_OP(vm, status, ctx, byte, ==); break;
+    case UVM_INSTRUCTION_BYLT  : UVM_LOGIC_OP(vm, status, ctx, byte, <);  break;
+    case UVM_INSTRUCTION_BYGT  : UVM_LOGIC_OP(vm, status, ctx, byte, >);  break;
+    case UVM_INSTRUCTION_BYLTS : UVM_LOGIC_OP(vm, status, ctx, sbyte, <); break;
+    case UVM_INSTRUCTION_BYGTS : UVM_LOGIC_OP(vm, status, ctx, sbyte, >); break;
 
     /* BY end. */
 
@@ -867,20 +1072,31 @@ int uvm_execute(
     case UVM_INSTRUCTION_SHREV : UVM_REV (vm, status, ctx, short); break;
     case UVM_INSTRUCTION_SHDUP : UVM_DUP (vm, status, ctx, short); break;
 
-    case UVM_INSTRUCTION_SHADD : UVM_BINARY_OP(vm, status, ctx, ushort, +); break;
-    case UVM_INSTRUCTION_SHSUB : UVM_BINARY_OP(vm, status, ctx, ushort, -); break;
-    case UVM_INSTRUCTION_SHMUL : UVM_BINARY_OP(vm, status, ctx, ushort, *); break;
-    case UVM_INSTRUCTION_SHDIV : UVM_BINARY_OP(vm, status, ctx, ushort, /); break;
-    case UVM_INSTRUCTION_SHMOD : UVM_BINARY_OP(vm, status, ctx, ushort, %); break;
-    case UVM_INSTRUCTION_SHADDS: UVM_BINARY_OP(vm, status, ctx, short , +); break;
-    case UVM_INSTRUCTION_SHSUBS: UVM_BINARY_OP(vm, status, ctx, short , -); break;
-    case UVM_INSTRUCTION_SHMULS: UVM_BINARY_OP(vm, status, ctx, short , *); break;
-    case UVM_INSTRUCTION_SHDIVS: UVM_BINARY_OP(vm, status, ctx, short , /); break;
-    case UVM_INSTRUCTION_SHMODS: UVM_BINARY_OP(vm, status, ctx, short , %); break;
-
-    case UVM_INSTRUCTION_SHAND : UVM_BINARY_OP(vm, status, ctx, ushort, &); break;
-    case UVM_INSTRUCTION_SHOR  : UVM_BINARY_OP(vm, status, ctx, ushort, |); break;
-    case UVM_INSTRUCTION_SHXOR : UVM_BINARY_OP(vm, status, ctx, ushort, ^); break;
+    case UVM_INSTRUCTION_SHADD : UVM_BINARY_OP(vm, status, ctx, ushort, +, true); break;
+    case UVM_INSTRUCTION_SHSUB : UVM_BINARY_OP(vm, status, ctx, ushort, -, true); break;
+    case UVM_INSTRUCTION_SHMUL : UVM_BINARY_OP(vm, status, ctx, ushort, *, true); break;
+    case UVM_INSTRUCTION_SHDIV : UVM_BINARY_OP(vm, status, ctx, ushort, /, false); break;
+    case UVM_INSTRUCTION_SHMOD : UVM_BINARY_OP(vm, status, ctx, ushort, %, false); break;
+    case UVM_INSTRUCTION_SHADDS: UVM_BINARY_OP(vm, status, ctx, short , +, true); break;
+    case UVM_INSTRUCTION_SHSUBS: UVM_BINARY_OP(vm, status, ctx, short , -, true); break;
+    case UVM_INSTRUCTION_SHMULS: UVM_BINARY_OP(vm, status, ctx, short , *, true); break;
+    case UVM_INSTRUCTION_SHDIVS: UVM_BINARY_OP(vm, status, ctx, short , /, false); break;
+    case UVM_INSTRUCTION_SHMODS: UVM_BINARY_OP(vm, status, ctx, short , %, false); break;
+    case UVM_INSTRUCTION_SHASL : UVM_SHIFT_OP(vm, status, ctx, short, <<, 1); break;
+    case UVM_INSTRUCTION_SHASR : UVM_SHIFT_OP(vm, status, ctx, short, >>, 1); break;
+    case UVM_INSTRUCTION_SHAND : UVM_BINARY_OP(vm, status, ctx, ushort, &, true); break;
+    case UVM_INSTRUCTION_SHOR  : UVM_BINARY_OP(vm, status, ctx, ushort, |, true); break;
+    case UVM_INSTRUCTION_SHXOR : UVM_BINARY_OP(vm, status, ctx, ushort, ^, true); break;
+    case UVM_INSTRUCTION_SHNOT : UVM_UNARY_OP(vm, status, ctx, ushort, ~);  break;
+    case UVM_INSTRUCTION_SHLSL : UVM_SHIFT_OP(vm, status, ctx, ushort, <<, 1); break;
+    case UVM_INSTRUCTION_SHLSR : UVM_SHIFT_OP(vm, status, ctx, ushort, >>, 1); break;
+    case UVM_INSTRUCTION_SHRL  : UVM_ROTATE_OP(vm, status, ctx, ushort, UVM_SHORT_SZ, <<, >>, 1); break;
+    case UVM_INSTRUCTION_SHRR  : UVM_ROTATE_OP(vm, status, ctx, ushort, UVM_SHORT_SZ, >>, <<, 1); break;
+    case UVM_INSTRUCTION_SHEQ  : UVM_LOGIC_OP(vm, status, ctx, ushort, ==); break;
+    case UVM_INSTRUCTION_SHLT  : UVM_LOGIC_OP(vm, status, ctx, ushort, <);  break;
+    case UVM_INSTRUCTION_SHGT  : UVM_LOGIC_OP(vm, status, ctx, ushort, >);  break;
+    case UVM_INSTRUCTION_SHLTS : UVM_LOGIC_OP(vm, status, ctx, short, <);   break;
+    case UVM_INSTRUCTION_SHGTS : UVM_LOGIC_OP(vm, status, ctx, short, >);   break;
 
     /* SH end. */
 
@@ -891,20 +1107,31 @@ int uvm_execute(
     case UVM_INSTRUCTION_INREV : UVM_REV (vm, status, ctx, int); break;
     case UVM_INSTRUCTION_INDUP : UVM_DUP (vm, status, ctx, int); break;
 
-    case UVM_INSTRUCTION_INADD : UVM_BINARY_OP(vm, status, ctx, uint, +); break;
-    case UVM_INSTRUCTION_INSUB : UVM_BINARY_OP(vm, status, ctx, uint, -); break;
-    case UVM_INSTRUCTION_INMUL : UVM_BINARY_OP(vm, status, ctx, uint, *); break;
-    case UVM_INSTRUCTION_INDIV : UVM_BINARY_OP(vm, status, ctx, uint, /); break;
-    case UVM_INSTRUCTION_INMOD : UVM_BINARY_OP(vm, status, ctx, uint, %); break;
-    case UVM_INSTRUCTION_INADDS: UVM_BINARY_OP(vm, status, ctx, int , +); break;
-    case UVM_INSTRUCTION_INSUBS: UVM_BINARY_OP(vm, status, ctx, int , -); break;
-    case UVM_INSTRUCTION_INMULS: UVM_BINARY_OP(vm, status, ctx, int , *); break;
-    case UVM_INSTRUCTION_INDIVS: UVM_BINARY_OP(vm, status, ctx, int , /); break;
-    case UVM_INSTRUCTION_INMODS: UVM_BINARY_OP(vm, status, ctx, int , %); break;
-
-    case UVM_INSTRUCTION_INAND : UVM_BINARY_OP(vm, status, ctx, uint, &); break;
-    case UVM_INSTRUCTION_INOR  : UVM_BINARY_OP(vm, status, ctx, uint, |); break;
-    case UVM_INSTRUCTION_INXOR : UVM_BINARY_OP(vm, status, ctx, uint, ^); break;
+    case UVM_INSTRUCTION_INADD : UVM_BINARY_OP(vm, status, ctx, uint, +, true); break;
+    case UVM_INSTRUCTION_INSUB : UVM_BINARY_OP(vm, status, ctx, uint, -, true); break;
+    case UVM_INSTRUCTION_INMUL : UVM_BINARY_OP(vm, status, ctx, uint, *, true); break;
+    case UVM_INSTRUCTION_INDIV : UVM_BINARY_OP(vm, status, ctx, uint, /, false); break;
+    case UVM_INSTRUCTION_INMOD : UVM_BINARY_OP(vm, status, ctx, uint, %, false); break;
+    case UVM_INSTRUCTION_INADDS: UVM_BINARY_OP(vm, status, ctx, int , +, true); break;
+    case UVM_INSTRUCTION_INSUBS: UVM_BINARY_OP(vm, status, ctx, int , -, true); break;
+    case UVM_INSTRUCTION_INMULS: UVM_BINARY_OP(vm, status, ctx, int , *, true); break;
+    case UVM_INSTRUCTION_INDIVS: UVM_BINARY_OP(vm, status, ctx, int , /, false); break;
+    case UVM_INSTRUCTION_INMODS: UVM_BINARY_OP(vm, status, ctx, int , %, false); break;
+    case UVM_INSTRUCTION_INASL : UVM_SHIFT_OP(vm, status, ctx, int, <<, 1); break;
+    case UVM_INSTRUCTION_INASR : UVM_SHIFT_OP(vm, status, ctx, int, >>, 1); break;
+    case UVM_INSTRUCTION_INAND : UVM_BINARY_OP(vm, status, ctx, uint, &, true); break;
+    case UVM_INSTRUCTION_INOR  : UVM_BINARY_OP(vm, status, ctx, uint, |, true); break;
+    case UVM_INSTRUCTION_INXOR : UVM_BINARY_OP(vm, status, ctx, uint, ^, true); break;
+    case UVM_INSTRUCTION_INNOT : UVM_UNARY_OP(vm, status, ctx, uint, ~);  break;
+    case UVM_INSTRUCTION_INLSL : UVM_SHIFT_OP(vm, status, ctx, uint, <<, 1); break;
+    case UVM_INSTRUCTION_INLSR : UVM_SHIFT_OP(vm, status, ctx, uint, >>, 1); break;
+    case UVM_INSTRUCTION_INRL  : UVM_ROTATE_OP(vm, status, ctx, uint, UVM_INT_SZ, <<, >>, 1); break;
+    case UVM_INSTRUCTION_INRR  : UVM_ROTATE_OP(vm, status, ctx, uint, UVM_INT_SZ, >>, <<, 1); break;
+    case UVM_INSTRUCTION_INEQ  : UVM_LOGIC_OP(vm, status, ctx, uint, ==); break;
+    case UVM_INSTRUCTION_INLT  : UVM_LOGIC_OP(vm, status, ctx, uint, <);  break;
+    case UVM_INSTRUCTION_INGT  : UVM_LOGIC_OP(vm, status, ctx, uint, >);  break;
+    case UVM_INSTRUCTION_INLTS : UVM_LOGIC_OP(vm, status, ctx, int, <);   break;
+    case UVM_INSTRUCTION_INGTS : UVM_LOGIC_OP(vm, status, ctx, int, >);   break;
 
     /* IN end. */
 
@@ -915,20 +1142,31 @@ int uvm_execute(
     case UVM_INSTRUCTION_SZREV : UVM_REV (vm, status, ctx, size); break;
     case UVM_INSTRUCTION_SZDUP : UVM_DUP (vm, status, ctx, size); break;
 
-    case UVM_INSTRUCTION_SZADD : UVM_BINARY_OP(vm, status, ctx, size , +); break;
-    case UVM_INSTRUCTION_SZSUB : UVM_BINARY_OP(vm, status, ctx, size , -); break;
-    case UVM_INSTRUCTION_SZMUL : UVM_BINARY_OP(vm, status, ctx, size , *); break;
-    case UVM_INSTRUCTION_SZDIV : UVM_BINARY_OP(vm, status, ctx, size , /); break;
-    case UVM_INSTRUCTION_SZMOD : UVM_BINARY_OP(vm, status, ctx, size , %); break;
-    case UVM_INSTRUCTION_SZADDS: UVM_BINARY_OP(vm, status, ctx, ssize, +); break;
-    case UVM_INSTRUCTION_SZSUBS: UVM_BINARY_OP(vm, status, ctx, ssize, -); break;
-    case UVM_INSTRUCTION_SZMULS: UVM_BINARY_OP(vm, status, ctx, ssize, *); break;
-    case UVM_INSTRUCTION_SZDIVS: UVM_BINARY_OP(vm, status, ctx, ssize, /); break;
-    case UVM_INSTRUCTION_SZMODS: UVM_BINARY_OP(vm, status, ctx, ssize, %); break;
-
-    case UVM_INSTRUCTION_SZAND : UVM_BINARY_OP(vm, status, ctx, size , &); break;
-    case UVM_INSTRUCTION_SZOR  : UVM_BINARY_OP(vm, status, ctx, size , |); break;
-    case UVM_INSTRUCTION_SZXOR : UVM_BINARY_OP(vm, status, ctx, size , ^); break;
+    case UVM_INSTRUCTION_SZADD : UVM_BINARY_OP(vm, status, ctx, size , +, true); break;
+    case UVM_INSTRUCTION_SZSUB : UVM_BINARY_OP(vm, status, ctx, size , -, true); break;
+    case UVM_INSTRUCTION_SZMUL : UVM_BINARY_OP(vm, status, ctx, size , *, true); break;
+    case UVM_INSTRUCTION_SZDIV : UVM_BINARY_OP(vm, status, ctx, size , /, false); break;
+    case UVM_INSTRUCTION_SZMOD : UVM_BINARY_OP(vm, status, ctx, size , %, false); break;
+    case UVM_INSTRUCTION_SZADDS: UVM_BINARY_OP(vm, status, ctx, ssize, +, true); break;
+    case UVM_INSTRUCTION_SZSUBS: UVM_BINARY_OP(vm, status, ctx, ssize, -, true); break;
+    case UVM_INSTRUCTION_SZMULS: UVM_BINARY_OP(vm, status, ctx, ssize, *, true); break;
+    case UVM_INSTRUCTION_SZDIVS: UVM_BINARY_OP(vm, status, ctx, ssize, /, false); break;
+    case UVM_INSTRUCTION_SZMODS: UVM_BINARY_OP(vm, status, ctx, ssize, %, false); break;
+    case UVM_INSTRUCTION_SZASL : UVM_SHIFT_OP(vm, status, ctx, ssize, <<, 1); break;
+    case UVM_INSTRUCTION_SZASR : UVM_SHIFT_OP(vm, status, ctx, ssize, >>, 1); break;
+    case UVM_INSTRUCTION_SZAND : UVM_BINARY_OP(vm, status, ctx, size , &, true); break;
+    case UVM_INSTRUCTION_SZOR  : UVM_BINARY_OP(vm, status, ctx, size , |, true); break;
+    case UVM_INSTRUCTION_SZXOR : UVM_BINARY_OP(vm, status, ctx, size , ^, true); break;
+    case UVM_INSTRUCTION_SZNOT : UVM_UNARY_OP(vm, status, ctx, size, ~);   break;
+    case UVM_INSTRUCTION_SZLSL : UVM_SHIFT_OP(vm, status, ctx, size, <<, 1); break;
+    case UVM_INSTRUCTION_SZLSR : UVM_SHIFT_OP(vm, status, ctx, size, >>, 1); break;
+    case UVM_INSTRUCTION_SZRL  : UVM_ROTATE_OP(vm, status, ctx, size, UVM_SIZE_SZ, <<, >>, 1); break;
+    case UVM_INSTRUCTION_SZRR  : UVM_ROTATE_OP(vm, status, ctx, size, UVM_SIZE_SZ, >>, <<, 1); break;
+    case UVM_INSTRUCTION_SZEQ  : UVM_LOGIC_OP(vm, status, ctx, size, ==); break;
+    case UVM_INSTRUCTION_SZLT  : UVM_LOGIC_OP(vm, status, ctx, size, <);  break;
+    case UVM_INSTRUCTION_SZGT  : UVM_LOGIC_OP(vm, status, ctx, size, >);  break;
+    case UVM_INSTRUCTION_SZLTS : UVM_LOGIC_OP(vm, status, ctx, ssize, <); break;
+    case UVM_INSTRUCTION_SZGTS : UVM_LOGIC_OP(vm, status, ctx, ssize, >); break;
 
     /* SZ end. */
 
