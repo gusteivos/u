@@ -11,8 +11,11 @@ if "%1" == "-v" (
 )
 
 if "%1" == "" goto :end
-if exist "%1" (
-    del "%1"
+
+SET "f=%1"
+SET "f=%f:/=\%"
+if exist "%f%" (
+    del "%f%"
     if "%v%"=="1" echo removed: '%1'
 )
 
