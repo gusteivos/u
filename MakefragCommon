@@ -11,7 +11,12 @@ INCLUDES?=
 LIBS?=
 
 %$(OBJ): %.c
-	$(CCALL) $(FLAGS) $(DEFINES) $(INCLUDES) $(LIBS) -c $< -o $@
+	$(MFCC) \
+	$(MFCCFLAGS) $(FLAGS) \
+	$(MFCCDEFINES) $(DEFINES) \
+	$(MFCCINCLUDES) $(INCLUDES) \
+	-c $< -o $@ \
+	$(MFCCLIBS) $(LIBS)
 
 clean: outherclean
 	$(RM) $(OBJECTS)

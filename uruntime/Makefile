@@ -15,8 +15,19 @@ UVMOBJECTS:=$(OBJECTS)
 
 include ./Makefrag
 
+ifeq ($(OS),Windows_NT)
+	LIBS+=-lkernel32
+else
+	LIBS+=-lpthread
+endif
+
 all: $(OBJECTS)
-	$(CCALL) $(UCOMMONOBJECTS) $(UVMOBJECTS) $(OBJECTS) -o $(URUNTIMENAME)$(EXEC)
+	$(MFCC) \
+	$(MFCCFLAGS) $(FLAGS) \
+	$(MFCCDEFINES) $(DEFINES) \
+	$(MFCCINCLUDES) $(INCLUDES) \
+	$(UCOMMONOBJECTS) $(UVMOBJECTS) $(OBJECTS) -o $(URUNTIMENAME)$(EXEC) \
+	$(MFCCLIBS) $(LIBS)
 
 include ./../MakefragRM
 
